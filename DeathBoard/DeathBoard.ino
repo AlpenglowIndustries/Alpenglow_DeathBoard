@@ -41,11 +41,17 @@ Adafruit_NeoPixel strip(LED_STRIP_COUNT, LED_STRIP_PIN, NEO_GRB + NEO_KHZ800);
 int button = 0;
 int buttLED = 0;
 int pbutt = 1;
-int buttPress = 0;
+volatile int buttPress = 0;
+int buttCount = 0;
+
+void Press(){
+  buttPress = 1;
+}
 
 void setup() {
   pinMode(BUTTON_LED_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), Press, FALLING);
 
 
   strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
@@ -58,18 +64,35 @@ void setup() {
 
 void loop() {
 
-button = digitalRead(BUTTON_PIN);
-if (pbutt == HIGH && button == LOW){
-  buttPress = 1;
-}
-else buttPress = 0;
+// button = digitalRead(BUTTON_PIN);
+// if (pbutt == HIGH && button == LOW){
+//   buttPress = 1;
+// }
+// else buttPress = 0;
 
 if(buttPress == 1){
   buttLED = !buttLED;
   digitalWrite(BUTTON_LED_PIN, buttLED);
+  buttCount++;
+  buttCount = buttCount %3;
+  buttPress = 0;
+}
+
+switch(buttCount){
+  case 0:
+    rainbow(10);
+    break;
+  case 1:
+    theaterChase(25, 25);
+    break;
+  case 2:
+    colorWipe(strip.Color(0, 130, 145), 50);
+    colorWipe(strip.Color(150, 0, 145), 50);
+    colorWipe(strip.Color(160, 150, 0), 50);
+    break;
 }
 pbutt = button;
-delay(250);
+// delay(250);
 
   // // Fill along the length of the strip in various colors...
   // colorWipe(strip.Color(255,   0,   0), 50); // Red
@@ -81,7 +104,7 @@ delay(250);
   // theaterChase(strip.Color(127,   0,   0), 50); // Red, half brightness
   // theaterChase(strip.Color(  0,   0, 127), 50); // Blue, half brightness
 
-  // rainbow(10);             // Flowing rainbow cycle along the whole strip
+  //          // Flowing rainbow cycle along the whole strip
 //  theaterChaseRainbow(50); // Rainbow-enhanced theaterChase variant
 }
 
