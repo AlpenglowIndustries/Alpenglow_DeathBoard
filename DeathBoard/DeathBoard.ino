@@ -36,19 +36,19 @@ Adafruit_NeoPixel strip(LED_STRIP_COUNT, LED_STRIP_PIN, NEO_GRB + NEO_KHZ800);
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 
 
-// setup() function -- runs once at startup --------------------------------
 
-int button = 0;
-int buttLED = 0;
-int pbutt = 1;
 volatile int buttPress = 0;
 int buttCount = 0;
 
+// ISR (interrupt routine) interrupts when button is pressed
 void Press(){
   buttPress = 1;
+  digitalWrite(BUTTON_LED_PIN, buttPress);    //turning button LED on to indicate it has not switched to the next pattern yet
+
 }
 
-void setup() {
+// setup() function -- runs once at startup --------------------------------
+void setup() { //sets up pins for button and button LED
   pinMode(BUTTON_LED_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), Press, FALLING);
@@ -57,6 +57,13 @@ void setup() {
   strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
   strip.show();            // Turn OFF all pixels ASAP
   strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
+
+  for(int i = 0; i < 2; i++){   //button LED blinks twice to indicate when code is finished uploading
+    digitalWrite(BUTTON_LED_PIN, HIGH);
+    delay(250);
+    digitalWrite(BUTTON_LED_PIN, LOW);
+    delay(250);
+  }
 }
 
 
@@ -64,52 +71,37 @@ void setup() {
 
 void loop() {
 
-// button = digitalRead(BUTTON_PIN);
-// if (pbutt == HIGH && button == LOW){
-//   buttPress = 1;
-// }
-// else buttPress = 0;
 
-if(buttPress == 1){
-  buttLED = !buttLED;
-  digitalWrite(BUTTON_LED_PIN, buttLED);
-  buttCount++;
-  buttCount = buttCount %3;
-  buttPress = 0;
+  if(buttPress == 1){                              // Checks to see if button has been pressed. buttPress is set in the ineterrupt
+    buttCount++;                                     // buttCount determines which pattern to play
+    buttCount = buttCount %3;                      // Limits buttCount to 3 patterns
+    buttPress = 0;                                   // buttPress is set back to LOW
+    digitalWrite(BUTTON_LED_PIN, buttPress);      // Clears LED just prior to starting new pattern
+  }
+
+  // These are the 3 patterns
+  switch(buttCount){
+    case 0:                   
+      rainbow(2);
+      break;
+    case 1:
+      theaterChase(0x99CC00, 50);
+      break;
+    case 2:
+      colorWipe(strip.Color(0, 130, 145), 5);
+      colorWipe(strip.Color(150, 0, 145), 5);
+      break;
+  }
+        
 }
 
-switch(buttCount){
-  case 0:
-    rainbow(10);
-    break;
-  case 1:
-    theaterChase(25, 25);
-    break;
-  case 2:
-    colorWipe(strip.Color(0, 130, 145), 50);
-    colorWipe(strip.Color(150, 0, 145), 50);
-    colorWipe(strip.Color(160, 150, 0), 50);
-    break;
-}
-pbutt = button;
-// delay(250);
+
+// Some functions of our own for creating animated effects -----------------
 
   // // Fill along the length of the strip in various colors...
   // colorWipe(strip.Color(255,   0,   0), 50); // Red
   // colorWipe(strip.Color(  0, 255,   0), 50); // Green
   // colorWipe(strip.Color(  0,   0, 255), 50); // Blue
-  //
-  // // Do a theater marquee effect in various colors...
-  // theaterChase(strip.Color(127, 127, 127), 50); // White, half brightness
-  // theaterChase(strip.Color(127,   0,   0), 50); // Red, half brightness
-  // theaterChase(strip.Color(  0,   0, 127), 50); // Blue, half brightness
-
-  //          // Flowing rainbow cycle along the whole strip
-//  theaterChaseRainbow(50); // Rainbow-enhanced theaterChase variant
-}
-
-
-// Some functions of our own for creating animated effects -----------------
 
 // Fill strip pixels one after another with a color. Strip is NOT cleared
 // first; anything there will be covered pixel by pixel. Pass in color
@@ -124,11 +116,16 @@ void colorWipe(uint32_t color, int wait) {
   }
 }
 
+  // // Do a theater marquee effect in various colors...
+  // theaterChase(strip.Color(127, 127, 127), 50); // White, half brightness
+  // theaterChase(strip.Color(127,   0,   0), 50); // Red, half brightness
+  // theaterChase(strip.Color(  0,   0, 127), 50); // Blue, half brightness
+
 // Theater-marquee-style chasing lights. Pass in a color (32-bit value,
 // a la strip.Color(r,g,b) as mentioned above), and a delay time (in ms)
 // between frames.
 void theaterChase(uint32_t color, int wait) {
-  for(int a=0; a<10; a++) {  // Repeat 10 times...
+  for(int a=0; a<1; a++) {  // Repeat 10 times...
     for(int b=0; b<3; b++) { //  'b' counts from 0 to 2...
       strip.clear();         //   Set all pixels in RAM to 0 (off)
       // 'c' counts up from 'b' to end of strip in steps of 3...
@@ -147,7 +144,7 @@ void rainbow(int wait) {
   // Color wheel has a range of 65536 but it's OK if we roll over, so
   // just count from 0 to 5*65536. Adding 256 to firstPixelHue each time
   // means we'll make 5*65536/256 = 1280 passes through this outer loop:
-  for(long firstPixelHue = 0; firstPixelHue < 5*65536; firstPixelHue += 256) {
+  for(long firstPixelHue = 0; firstPixelHue < 65536; firstPixelHue += 512) {
     for(int i=0; i<strip.numPixels(); i++) { // For each pixel in strip...
       // Offset pixel hue by an amount to make one full revolution of the
       // color wheel (range of 65536) along the length of the strip
@@ -165,6 +162,8 @@ void rainbow(int wait) {
   }
 }
 
+// Flowing rainbow cycle along the whole strip
+//  theaterChaseRainbow(50); // Rainbow-enhanced theaterChase variant
 // Rainbow-enhanced theater marquee. Pass delay time (in ms) between frames.
 void theaterChaseRainbow(int wait) {
   int firstPixelHue = 0;     // First pixel starts at red (hue 0)
