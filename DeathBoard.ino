@@ -38,7 +38,7 @@ Adafruit_NeoPixel strip(LED_STRIP_COUNT, LED_STRIP_PIN, NEO_GRB + NEO_KHZ800);
 
 
 volatile int buttPress = 0;
-int buttCount = 0;
+int buttCount = 3;
 
 // ISR (interrupt routine) interrupts when button is pressed
 void Press(){
@@ -74,7 +74,7 @@ void loop() {
 
   if(buttPress == 1){                              // Checks to see if button has been pressed. buttPress is set in the ineterrupt
     buttCount++;                                     // buttCount determines which pattern to play
-    buttCount = buttCount %3;                      // Limits buttCount to 3 patterns
+    buttCount = buttCount % 4;                      // Limits buttCount to 3 patterns
     buttPress = 0;                                   // buttPress is set back to LOW
     digitalWrite(BUTTON_LED_PIN, buttPress);      // Clears LED just prior to starting new pattern
   }
@@ -90,6 +90,10 @@ void loop() {
     case 2:
       colorWipe(strip.Color(0, 130, 145), 5);
       colorWipe(strip.Color(150, 0, 145), 5);
+      break;
+    case 3:
+    // tried using strip.Clear, but it hung and skipped button presses.  Weird.
+      colorWipe(strip.Color(0, 0, 0), 5);
       break;
   }
         
